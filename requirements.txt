@@ -1,0 +1,6 @@
+streamlit
+pandas
+bokeh
+xlrd
+openpyxl 
+matplotlib
