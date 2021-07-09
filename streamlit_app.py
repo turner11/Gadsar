@@ -1,15 +1,8 @@
 import pandas as pd
 import streamlit as st
 from pathlib import Path
-import numpy as np
 from utils import DataBundle
 import altair as alt
-
-from bokeh.models import ColumnDataSource
-from bokeh.plotting import figure
-from bokeh.palettes import Spectral6
-
-
 
 def get_sidebar_inputs():
     excel_path = st.sidebar.text_input('Excel path', Path('./data.xlsx').resolve())
