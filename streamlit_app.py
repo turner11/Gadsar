@@ -60,11 +60,10 @@ def main():
 
 
     # with st.beta_expander('זמני הגעה לפי מחלקות', expanded=True):
-    if True:
-        from bokeh_script import get_bokeh_figure
-        lay = get_bokeh_figure(r'C:\Users\avitu\Documents\GitHub\IMI\data.xlsx')
-        st.bokeh_chart(lay)
-        1
+    # if False:
+    #     from bokeh_script import get_bokeh_figure
+    #     lay = get_bokeh_figure(r'data.xlsx')
+    #     st.bokeh_chart(lay)
 
 
 if __name__ == '__main__':

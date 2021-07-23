@@ -1,6 +1,7 @@
 streamlit
 pandas
+numpy
 bokeh
 xlrd
-openpyxl 
+openpyxl
 matplotlib
