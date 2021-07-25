@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from pathlib import Path
+import altair as alt
 from results_utils import ResultsDataBundle
 
 DEBUG = False
@@ -53,7 +54,6 @@ def main():
         show_total(df, bundle.stats_cols)
 
 
-
 def show_stats(df, stats_cols, highlighted_records=tuple()):
     stats_cols = sorted(set(stats_cols).intersection(set(df.columns)))
     if not stats_cols:
@@ -66,21 +66,20 @@ def show_stats(df, stats_cols, highlighted_records=tuple()):
         get_stats_for_col(df, col, highlighted_records)
 
 
-
 def show_total(df, stats_cols):
     avg = df[stats_cols].replace(0, np.nan).mean(numeric_only=True, skipna=True, axis=0)
     st.subheader('ממוצע לפי נושא:')
     st.dataframe(avg)
     st.subheader('סה"כ:')
     total_avg = avg.mean()
+    # noinspection PyStatementEffect
     total_avg
 
 
 def get_stats_for_col(df, col, highlighted_records=tuple()):
-    import altair as alt
+
     df = df.copy()
     selected = df.index.isin(highlighted_records)
-
 
     df_highlight = df.iloc[selected, :].copy()
     dfs = [(df, 75, 'average'), (df_highlight, 50, alt.value('red'))]
