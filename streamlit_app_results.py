@@ -23,12 +23,25 @@ def get_sidebar_inputs():
     if not excel_arg:
         return
 
+
     df = get_excel(excel_arg)
+    group_filter = ''
+    if 'group' in df.columns:
+        groups = ['']+ [g for g in df['group'].dropna().drop_duplicates() if g.strip()]
+        groups = sorted(groups)
+        group_filter = st.sidebar.selectbox('פילטר', groups, groups.index(''))
+    if group_filter:
+        df = df[df['group']==group_filter]
+
     bundle = ResultsDataBundle(df)
     filter_dates = list(bundle.dates)
-    date = st.sidebar.selectbox('dates', filter_dates, 2)
-    if date:
-        bundle.filter_dates = [date]
+
+    if not group_filter:
+        # HACK for gadsar...
+        idx = 2 if len(filter_dates) >2 else 0
+        date = st.sidebar.selectbox('dates', filter_dates, idx)
+        if date:
+            bundle.filter_dates = [date]
     return bundle
 
 
@@ -72,8 +85,10 @@ def show_total(df, stats_cols):
     st.dataframe(avg)
     st.subheader('סה"כ:')
     total_avg = avg.mean()
-    # noinspection PyStatementEffect
-    total_avg
+    s = pd.Series({'מתאמנים':len(df), 'ממוצע':total_avg})
+    st.dataframe(s)
+
+
 
 
 def get_stats_for_col(df, col, highlighted_records=tuple()):
@@ -129,3 +144,4 @@ def show_searchable_item(df):
 
 if __name__ == '__main__':
     main()
+

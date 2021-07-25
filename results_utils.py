@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 renames = {'תאריך': 'date',
            'שם ומספר אישי': 'id',}
-drops_prefixes = {'מס', 'האם ברצונך לדווח'}
+drops_prefixes = {'מס', 'האם ברצונך לדווח', 'MA'}
 
 
 class ResultsDataBundle(object):
