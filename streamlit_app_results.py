@@ -4,7 +4,7 @@ import streamlit as st
 from pathlib import Path
 from results_utils import ResultsDataBundle
 
-DEBUG = True
+DEBUG = False
 
 
 @st.cache
