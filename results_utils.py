@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 renames = {'תאריך': 'date',
-           'שם ומספר אישי': 'id',
-           }
+           'שם ומספר אישי': 'id',}
+drops_prefixes = {'מס', 'האם ברצונך לדווח'}
 
 
 class ResultsDataBundle(object):
@@ -57,7 +57,8 @@ class ResultsDataBundle(object):
     @staticmethod
     def get_stats_cols(df):
         excludes = ['average']
-        cols = sorted([str(c) for c, t in df.dtypes.items() if t == float and c not in excludes])
+        dd = df.copy().fillna(0.).infer_objects()
+        cols = sorted([str(c) for c, t in dd.dtypes.items() if t == float and c not in excludes])
         return cols
 
     @staticmethod
@@ -67,12 +68,20 @@ class ResultsDataBundle(object):
         if isinstance(excel_arg, Path):
             excel_arg = str(excel_arg)
 
-        df = pd.read_excel(excel_arg, sheet_name='edited')
+        df = pd.read_excel(excel_arg)#, sheet_name='edited')
         df = df.replace("לא נענה", np.NaN)
         df = df.rename(columns={c: c.strip().replace("'", "").replace('"', '') for c in df.columns})
 
         df = df.rename(columns=renames)
         df['date'] = pd.to_datetime(df.date)
+        for c in df.columns:
+            if any(c.startswith(p) for p in drops_prefixes):
+                del df[c]
+            else:
+                try:
+                    df[c] = df[c].apply(lambda v: float(v))
+                except:
+                    pass
         df = ResultsDataBundle._prettify(df)
 
         drop_cols, col_renames = ResultsDataBundle._get_drop_cols(df)
@@ -98,7 +107,7 @@ class ResultsDataBundle(object):
                 logger.exception(f'Failed to handle data at {col}')
                 del df[col]
 
-        df['average'] = df[data_cols].mean(numeric_only=True, skipna=True, axis=1)
+        df['average'] = df[data_cols].replace(0, np.nan).mean(numeric_only=True, skipna=True, axis=1)
         # df['average'] = df[data_cols].apply(lambda r: r.dropna().mean(skipna=True), axis='columns')
         return df.copy()
 
