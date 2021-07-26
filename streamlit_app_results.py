@@ -63,18 +63,26 @@ def main():
         elif len(records):
             st.dataframe(records)
 
-    highlighted_records = (records.name,) if isinstance(records, pd.Series) else tuple(records.index)
-    stats_cols = sorted(set(bundle.stats_cols).intersection(set(df.columns)))
-    default_stat = stats_cols[0]
-    affective_cols = st.multiselect("אימון:", stats_cols, default_stat)
+    with st.beta_expander('פירוט אימונים', expanded=False):
+        highlighted_records = (records.name,) if isinstance(records, pd.Series) else tuple(records.index)
+        stats_cols = sorted(set(bundle.stats_cols).intersection(set(df.columns)))
+        default_stat = stats_cols[0]
+        affective_cols = st.multiselect("אימון:", stats_cols, default_stat)
 
-    charts = bundle.get_charts(affective_cols, highlighted_records=highlighted_records)
-    if len(affective_cols) and not len(charts):
-        st.warning('לא נמצאו נתונים לסטטיסטיקה')
-    else:
-        for key, alt_chart in charts.items():
+        charts = bundle.get_charts(affective_cols, highlighted_records=highlighted_records)
+        if len(affective_cols) and not len(charts):
+            st.warning('לא נמצאו נתונים לסטטיסטיקה')
+        else:
+
+            for key, alt_chart in charts.items():
+                chart = st.empty()
+                chart.altair_chart(alt_chart, use_container_width=True)
+
+    comparison_chart = bundle.get_comparison_chart()
+    if comparison_chart is not None:
+        with st.beta_expander('השוואה בין מסגרות', expanded=True):
             chart = st.empty()
-            chart.altair_chart(alt_chart, use_container_width=True)
+            chart.altair_chart(comparison_chart, use_container_width=True)
 
     with st.beta_expander('סיכום', expanded=False):
         df_avg, s_total = bundle.get_total_series()
@@ -84,12 +92,6 @@ def main():
 
         s = pd.Series({'מתאמנים': len(df), 'ממוצע': s_total})
         st.dataframe(s)
-
-    comparison_chart = bundle.get_comparison_chart()
-    if comparison_chart is not None:
-        with st.beta_expander('השוואה בין מסגרות', expanded=True):
-            chart = st.empty()
-            chart.altair_chart(comparison_chart, use_container_width=True)
 
 
 if __name__ == '__main__':

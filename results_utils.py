@@ -178,24 +178,26 @@ class ResultsDataBundle(object):
         selected = df.index.isin(highlighted_records)
 
         df_highlight = df.iloc[selected, :].copy()
-        dfs = [(df, 75, 'average'), (df_highlight, 50, alt.value('red'))]
+        dfs = [(df, 75, None), (df_highlight, 150, alt.value('purple'))]
         charts = []
         selection = alt.selection_multi(fields=['pluga'], bind='legend')
         for tpl in dfs:
             curr_df, size, color = tpl
+            if not len(curr_df):
+                continue
 
             x = alt.Chart(curr_df).mark_circle(size=size).encode(
                 x=alt.X(f'{col}:Q',
                         scale=alt.Scale(zero=False)),
                 y='average',
                 # color=color,
-                color='pluga',
+                color=color if color is not None else 'pluga',
                 tooltip=[c for c, t in df.dtypes.items() if t == object or c == 'average'],
                 opacity=alt.condition(selection, alt.value(1), alt.value(0.1)),
             ).interactive()
             charts.append(x)
 
-        result = (charts[0] + charts[1])
+        result = reduce(lambda c1, c2: c1 + c2, charts)
         result = result.add_selection(selection)
         return result
 
