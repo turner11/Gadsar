@@ -1,18 +1,20 @@
+from functools import reduce
 from pathlib import Path
 from typing import Union
 import numpy as np
 import pandas as pd
 from collections import defaultdict
+import altair as alt
 import logging
 
 logger = logging.getLogger(__name__)
 
-
 renames = {'תאריך': 'date',
-           'שם ומספר אישי': 'id',}
+           'שם ומספר אישי': 'id', }
 drops_prefixes = {'מס', 'האם ברצונך לדווח', 'MA'}
 
 
+# noinspection PyBroadException
 class ResultsDataBundle(object):
 
     @property
@@ -34,6 +36,7 @@ class ResultsDataBundle(object):
         if self._filter_dates:
             ret = df[df.date.isin(self._filter_dates)]
         return ret
+
     @property
     def stats_cols(self):
         cols = self.get_stats_cols(self.df)
@@ -54,21 +57,20 @@ class ResultsDataBundle(object):
         self.excel_path = excel_path
         self._df = df
 
+    # noinspection SpellCheckingInspection, PyBroadException
     @staticmethod
     def get_stats_cols(df):
-        excludes = ['average']
+        excludes = ['average', 'group', 'pluga', 'mahlaka']
         dd = df.copy().fillna(0.).infer_objects()
         cols = sorted([str(c) for c, t in dd.dtypes.items() if t == float and c not in excludes])
         return cols
 
     @staticmethod
     def load_raw_data(excel_arg):
-        # טכניקות ותרגולות בש"
-        # פגיעה באויב - זה פנים מבנה
         if isinstance(excel_arg, Path):
             excel_arg = str(excel_arg)
 
-        df = pd.read_excel(excel_arg)#, sheet_name='edited')
+        df = pd.read_excel(excel_arg)  # , sheet_name='edited')
         df = df.replace("לא נענה", np.NaN)
         df = df.rename(columns={c: c.strip().replace("'", "").replace('"', '') for c in df.columns})
 
@@ -99,10 +101,10 @@ class ResultsDataBundle(object):
 
         df = df.infer_objects()
         df = df.set_index('id')
-        data_cols = ResultsDataBundle. get_stats_cols(df)
+        data_cols = ResultsDataBundle.get_stats_cols(df)
         for col in data_cols:
             try:
-                df[col] = df[col].apply(lambda v: v/1.0 if v <=10 else v /10.0)
+                df[col] = df[col].apply(lambda v: v / 1.0 if v <= 10 else v / 10.0)
             except:
                 logger.exception(f'Failed to handle data at {col}')
                 del df[col]
@@ -127,7 +129,6 @@ class ResultsDataBundle(object):
         df['name'] = df.apply(lambda row: row.id_old.replace(str(row.id), '').strip(), axis=1)
 
         df = df.drop('id_old', axis='columns')
-
         columns = ['id', 'name'] + [c for c in df.columns if c not in ['id', 'name']]
         return df[columns]
 
@@ -141,3 +142,128 @@ class ResultsDataBundle(object):
 
         _renames = {c: c.split('-')[0] for c in df.columns}
         return set(drop_cols), _renames
+
+    # noinspection PyBroadException
+    def get_items(self, search_key):
+        df = self.df
+        records = df[[False] * len(df)]
+        if search_key:
+            try:
+                records = df.loc[[int(search_key)], :]
+            except Exception:
+                name_match = df.name.str.contains(f'.*{search_key}.*', regex=True)
+                records = df.loc[name_match]
+
+            if len(records) == 1:
+                records = records.iloc[0]
+                records = records.dropna()
+            elif len(records) > 1:
+                records = records.dropna(how='all', axis='columns')
+
+        return records
+
+    def get_charts(self, affective_cols, highlighted_records=tuple()):
+        df = self.df
+        stats_cols = [c for c in affective_cols if c in df.columns]
+
+        charts = {}
+        for col in stats_cols:
+            chart = self.__get_chart_for_col(df, col, highlighted_records)
+            charts[col] = chart
+        return charts
+
+    @staticmethod
+    def __get_chart_for_col(df, col, highlighted_records=tuple()):
+        df = df.copy()
+        selected = df.index.isin(highlighted_records)
+
+        df_highlight = df.iloc[selected, :].copy()
+        dfs = [(df, 75, 'average'), (df_highlight, 50, alt.value('red'))]
+        charts = []
+        for tpl in dfs:
+            curr_df, size, color = tpl
+
+            x = alt.Chart(curr_df).mark_circle(size=size).encode(
+                x=alt.X(f'{col}:Q',
+                        scale=alt.Scale(zero=False)),
+                y='average',
+                # color=color,
+                color=color,
+                tooltip=[c for c, t in df.dtypes.items() if t == object or c == 'average'],  # 'description',
+            ).interactive()
+            charts.append(x)
+
+        result = charts[0] + charts[1]
+        return result
+
+    def get_total_series(self):
+        df = self.df
+        stats_cols = self.stats_cols
+        return self.__get_total_series(df, stats_cols)
+
+    @staticmethod
+    def __get_total_series(df, stats_cols):
+        df_avg = df[stats_cols].replace(0, np.nan).mean(numeric_only=True, skipna=True, axis=0)
+        s_total = df_avg.mean()
+        return df_avg, s_total
+
+    def get_comparison_chart(self):
+        df = self.df
+        stats_cols = self.stats_cols
+
+        required_fields = ['pluga', 'mahlaka']
+        out_doors_cols = [c for c in stats_cols if 'טכניקות ותרגולות' in c]
+        in_doors_cols = [c for c in stats_cols if 'פגיעה באויב' in c]
+
+        has_groups = all(c in df.columns for c in required_fields)
+        has_data = all(len(arr) for arr in [out_doors_cols, in_doors_cols])
+
+        if not has_groups or not has_data:
+            return None
+
+        df = df[(~df.pluga.isna()) & (~df.mahlaka.isna())]
+
+        if not len(df):
+            return None
+
+        df_data = df[required_fields + out_doors_cols + in_doors_cols].copy()
+        df_data['indoor'] = \
+            df_data[in_doors_cols].mean(skipna=True).mean()
+
+        in_doors = pd.concat([df_data[required_fields + [c]].rename(columns={c: 'indoor'}) for c in in_doors_cols])
+        out_doors = pd.concat([df_data[required_fields + [c]].rename(columns={c: 'outdoor'}) for c in out_doors_cols])
+
+        df_plot = in_doors.reset_index().merge(out_doors.reset_index()).set_index('id')
+
+        dfps = df_plot.groupby('pluga', as_index=True)[['indoor', 'outdoor']].agg(np.mean)
+        df_plot['mahlaka'] = df_plot.pluga.apply(str) + '/' + df_plot.mahlaka.apply(str)
+        dfms = df_plot.groupby(['mahlaka', 'pluga'], as_index=True)[['indoor', 'outdoor']].agg(np.mean)
+
+        charts = []
+        for pluga, dfp in dfms.groupby('pluga'):
+            chart_p = alt.Chart(dfp.reset_index()).mark_square(size=50).encode(
+                x=alt.X('indoor:Q',
+                        scale=alt.Scale(zero=False)),
+                y='outdoor',
+                color='pluga',
+                tooltip=['mahlaka', 'indoor', 'outdoor']
+            )
+
+            df_center = dfps[dfps.index == pluga].reset_index()
+            centroid = alt.Chart(df_center).mark_circle(size=350).encode(
+                x=alt.X('indoor:Q',
+                        scale=alt.Scale(zero=False)),
+                y='outdoor',
+                color='pluga',
+                tooltip=['pluga', 'indoor', 'outdoor'],
+            )
+
+            chart_p = chart_p + centroid
+            charts.append(chart_p)
+
+        chart = None
+        if charts:
+            chart = reduce(lambda c1, c2: c1 + c2, charts)
+            chart = chart.interactive()
+
+        return chart
