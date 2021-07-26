@@ -24,12 +24,12 @@ def get_sidebar_inputs():
 
     df = get_excel(excel_arg)
     group_filter = ''
-    if 'group' in df.columns:
-        groups = [''] + [g for g in df['group'].dropna().drop_duplicates() if g.strip()]
-        groups = sorted(groups)
-        group_filter = st.sidebar.selectbox('פילטר', groups, groups.index(''))
-    if group_filter:
-        df = df[df['group'] == group_filter]
+    # if 'group' in df.columns:
+    #     groups = [''] + [g for g in df['group'].dropna().drop_duplicates() if g.strip()]
+    #     groups = sorted(groups)
+    #     group_filter = st.sidebar.selectbox('פילטר', groups, groups.index(''))
+    # if group_filter:
+    #     df = df[df['group'] == group_filter]
 
     bundle = ResultsDataBundle(df)
     filter_dates = list(bundle.dates)
@@ -41,6 +41,44 @@ def get_sidebar_inputs():
         if date:
             bundle.filter_dates = [date]
     return bundle
+
+
+def show_single_file_info(info, bundle):
+    info = info.dropna()
+    df, stats_cols = bundle.df, bundle.stats_cols
+    stats_cols = set(stats_cols + ['average']).intersection(set(info.keys()))
+    meta_cols = [c for c in info.keys() if c not in stats_cols]
+    stats = info[stats_cols]
+    stats.name = ''
+    meta = info[meta_cols]
+
+    col_title, col_desc = st.beta_columns([1, 1])
+
+    for k, val in meta.items():
+        v = str(val).strip()
+        if not v:
+            continue
+        col_title.text(k)
+        col_desc.text(v)
+
+    # st.dataframe(stats)
+    percentiles = {}
+    for col, value in stats.items():
+        if col in df.columns:
+            general_values = df[col].dropna()
+        else:
+            general_values = []
+        if not len(general_values):
+            percentile = None
+        else:
+            percentile = sum(general_values <= value) / len(general_values) * 100.0
+
+        percentiles[col] = percentile
+
+    s_percentiles = pd.Series(percentiles, name='אחוזון')
+    stats.name = 'אימון'
+    dt = pd.DataFrame([stats, s_percentiles]).T
+    st.dataframe(dt)
 
 
 def main():
@@ -60,8 +98,10 @@ def main():
 
         if len(name) and not len(records):
             st.warning(f'No match found for "{name}"')
-        elif len(records):
+        elif isinstance(records, pd.DataFrame):
             st.dataframe(records)
+        elif isinstance(records, pd.Series):
+            show_single_file_info(records, bundle)
 
     with st.beta_expander('פירוט אימונים', expanded=False):
         highlighted_records = (records.name,) if isinstance(records, pd.Series) else tuple(records.index)
