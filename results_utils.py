@@ -239,6 +239,7 @@ class ResultsDataBundle(object):
         df_plot['mahlaka'] = df_plot.pluga.apply(str) + '/' + df_plot.mahlaka.apply(str)
         dfms = df_plot.groupby(['mahlaka', 'pluga'], as_index=True)[['indoor', 'outdoor']].agg(np.mean)
 
+        selection = alt.selection_multi(fields=['pluga'], bind='legend')
         charts = []
         for pluga, dfp in dfms.groupby('pluga'):
             chart_p = alt.Chart(dfp.reset_index()).mark_square(size=50).encode(
@@ -246,7 +247,8 @@ class ResultsDataBundle(object):
                         scale=alt.Scale(zero=False)),
                 y='outdoor',
                 color='pluga',
-                tooltip=['mahlaka', 'indoor', 'outdoor']
+                tooltip=['mahlaka', 'indoor', 'outdoor'],
+                opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
             )
 
             df_center = dfps[dfps.index == pluga].reset_index()
@@ -256,6 +258,7 @@ class ResultsDataBundle(object):
                 y='outdoor',
                 color='pluga',
                 tooltip=['pluga', 'indoor', 'outdoor'],
+                opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
             )
 
             chart_p = chart_p + centroid
@@ -264,6 +267,6 @@ class ResultsDataBundle(object):
         chart = None
         if charts:
             chart = reduce(lambda c1, c2: c1 + c2, charts)
-            chart = chart.interactive()
+            chart = chart.add_selection(selection).interactive()
 
         return chart
