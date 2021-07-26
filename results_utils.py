@@ -71,6 +71,10 @@ class ResultsDataBundle(object):
             excel_arg = str(excel_arg)
 
         df = pd.read_excel(excel_arg)  # , sheet_name='edited')
+        for col in ['pluga', 'mahlaka', 'group']:
+            if col not in df.columns:
+                df.assign(**{col:''})
+
         df = df.replace("לא נענה", np.NaN)
         df = df.rename(columns={c: c.strip().replace("'", "").replace('"', '') for c in df.columns})
 
