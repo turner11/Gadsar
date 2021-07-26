@@ -87,8 +87,9 @@ def main():
 
     comparison_chart = bundle.get_comparison_chart()
     if comparison_chart is not None:
-        chart = st.empty()
-        chart.altair_chart(comparison_chart, use_container_width=True)
+        with st.beta_expander('השוואה בין מסגרות', expanded=True):
+            chart = st.empty()
+            chart.altair_chart(comparison_chart, use_container_width=True)
 
 
 if __name__ == '__main__':
