@@ -14,7 +14,7 @@ def get_excel(excel_path):
 def get_sidebar_inputs():
     debug = os.environ.get('debug')
     if debug:
-        excel_path = st.sidebar.text_input('Excel path', Path('./imi_results.xlsx').resolve())
+        excel_path = st.sidebar.text_input('Excel path', Path(r'D:\Users\avitu\Downloads\1.xlsx').resolve())
         excel_arg = excel_path
     else:
         uploaded_file = st.sidebar.file_uploader("Choose the IMI results file", type="xlsx")
@@ -113,7 +113,6 @@ def main():
         if len(affective_cols) and not len(charts):
             st.warning('לא נמצאו נתונים לסטטיסטיקה')
         else:
-
             for key, alt_chart in charts.items():
                 chart = st.empty()
                 chart.altair_chart(alt_chart, use_container_width=True)

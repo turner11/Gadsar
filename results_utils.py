@@ -70,11 +70,7 @@ class ResultsDataBundle(object):
         if isinstance(excel_arg, Path):
             excel_arg = str(excel_arg)
 
-        df = pd.read_excel(excel_arg)  # , sheet_name='edited')
-        for col in ['pluga', 'mahlaka', 'group']:
-            if col not in df.columns:
-                df.assign(**{col:''})
-
+        df = pd.read_excel(excel_arg)
         df = df.replace("לא נענה", np.NaN)
         df = df.rename(columns={c: c.strip().replace("'", "").replace('"', '') for c in df.columns})
 
@@ -114,7 +110,9 @@ class ResultsDataBundle(object):
                 del df[col]
 
         df['average'] = df[data_cols].replace(0, np.nan).mean(numeric_only=True, skipna=True, axis=1)
-        # df['average'] = df[data_cols].apply(lambda r: r.dropna().mean(skipna=True), axis='columns')
+        for col in ['pluga', 'mahlaka', 'group']:
+            if col not in df.columns:
+                df = df.assign(**{col:''})
         return df.copy()
 
     @staticmethod
@@ -232,7 +230,7 @@ class ResultsDataBundle(object):
 
         df = df[(~df.pluga.isna()) & (~df.mahlaka.isna())]
 
-        if not len(df):
+        if not len(df) or len(set(df.pluga)) <= 1:
             return None
 
         df_data = df[required_fields + out_doors_cols + in_doors_cols].copy()
