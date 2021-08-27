@@ -21,6 +21,7 @@ reverse_renames = {
 }
 
 renames = {v: k for k, v in reverse_renames.items()}
+renames.update({k.replace(' ', '_'): v for k, v in renames.items()})
 now = datetime.now()
 
 
@@ -53,6 +54,7 @@ def get_time(raw_hour):
 
 class DataBundle:
     """"""
+
     @property
     def df_arrived(self):
         return self.df[self.df.arrived].reset_index(drop=True).copy()
@@ -65,9 +67,11 @@ class DataBundle:
         self.df = self.get_base_data(excel_path)
 
     @staticmethod
-    def get_base_data(excel_path: Union[str, Path]):
-        excel_path = Path(excel_path)
-        df = pd.read_excel(str(excel_path))
+    def get_base_data(excel_path: Union[str, Path, pd.DataFrame]):
+        if isinstance(excel_path, pd.DataFrame):
+            df = excel_path.copy()
+        else:
+            df = pd.read_excel(str(excel_path))
         df = df[[c for c in df.columns if 'unnamed' not in c.lower()]]
 
         df: pd.DataFrame = df.rename(columns=renames)
