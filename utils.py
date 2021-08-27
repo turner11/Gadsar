@@ -81,4 +81,6 @@ class DataBundle:
         # df['arrived'] = df.hour.apply(lambda v: True if v and not np.isnan(v) else False).astype(bool)
         df['hour'] = df.hour.apply(get_time)
         df['arrived'] = df.hour.apply(get_arrived).astype(bool)
+        if 'team' not in df.columns:
+            df = df.assign(team='?')
         return df.sort_values('hour').reset_index(drop=True).copy()
