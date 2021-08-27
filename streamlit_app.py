@@ -57,8 +57,12 @@ def main():
     with st.beta_expander('מידע גולמי', expanded=False):
         df
 
-    with st.beta_expander('כמה הגיעו מכל פלוגה', expanded=False):
-        df_arrived_count = df_arrived.groupby('pluga').agg({'mi': 'count'}).rename(columns={'mi': 'count'}).sort_values(
+
+    unique_pluga = tuple(df_arrived.pluga.unique())
+    unique_team = tuple(df_arrived.team.unique())
+    with st.beta_expander('כמה הגיעו מכל מסגרת', expanded=False):
+        group_by = 'pluga' if len(unique_pluga) != 1 and len(unique_team) > 1 else 'team'
+        df_arrived_count = df_arrived.groupby(group_by).agg({'mi': 'count'}).rename(columns={'mi': 'count'}).sort_values(
             'count')
         df_arrived_count
         st.bar_chart(df_arrived_count)
@@ -77,8 +81,8 @@ def main():
         dfc['total_arrived'] = pd.Series(range(len(dfc)), name='total_arrived') + 1
         dfc['time_stamp'] = dfc.hour.apply(lambda h: str(h.time()))
 
-        plugas = list(dfc.pluga.unique())
-        group_by = 'pluga' if len(plugas) != 1 else 'team'
+
+        group_by = 'pluga' if len(unique_pluga) != 1 else 'team'
         dfc[group_by] = dfc[group_by].apply(lambda v: str(v))  # Make sure its categorical in legend
         selection = alt.selection_multi(fields=[group_by], bind='legend')
         charts = []
