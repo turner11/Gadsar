@@ -7,3 +7,5 @@ openpyxl
 matplotlib
 
 altair~=4.1.0
+
+gsheetsdb==0.1.13
