@@ -1,3 +1,4 @@
+from collections import defaultdict
 from functools import reduce
 
 import pandas as pd
@@ -20,8 +21,8 @@ def run_query(query) -> pd.DataFrame:
 
 def get_df():
     sheet_url = st.secrets.get("public_gsheets_url", '')
-    query_params = st.experimental_get_query_params() or dict()
-    sheet_url = query_params.get('url', sheet_url)
+    query_params = st.experimental_get_query_params() or defaultdict(list)
+    sheet_url = query_params.get('url', [sheet_url])[0]
 
     path = sheet_url or Path('./data.xlsx').resolve()
     excel_path = st.sidebar.text_input('Excel path / URL', str(path))
@@ -62,11 +63,12 @@ def main():
         df_arrived_count
         st.bar_chart(df_arrived_count)
 
-    with st.beta_expander('כמה יש בכל קבוצה', expanded=True):
-        df_teams = df_arrived.groupby('group').agg({'mi': 'count'}).rename(columns={'mi': 'counts'}).sort_values(
-            'counts', ascending=False)
-        df_teams
-        st.bar_chart(df_teams)
+    if 'group' in df_arrived.columns:
+        with st.beta_expander('כמה יש בכל קבוצה', expanded=True):
+            df_teams = df_arrived.groupby('group').agg({'mi': 'count'}).rename(columns={'mi': 'counts'}).sort_values(
+                'counts', ascending=False)
+            df_teams
+            st.bar_chart(df_teams)
 
     with st.beta_expander('זמני הגעה', expanded=True):
         cols = ['pluga', 'hour', 'team'] + [c for c in df_arrived.columns if 'name' in c]
