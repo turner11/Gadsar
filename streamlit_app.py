@@ -61,7 +61,7 @@ def main():
     unique_pluga = tuple(df_arrived.pluga.unique())
     unique_team = tuple(df_arrived.team.unique())
     with st.beta_expander('כמה הגיעו מכל מסגרת', expanded=False):
-        group_by = 'pluga' if len(unique_pluga) != 1 and len(unique_team) > 1 else 'team'
+        group_by = 'pluga' if len(unique_pluga) != 1 or len(unique_team) == 1 else 'team'
         df_arrived_count = df_arrived.groupby(group_by).agg({'mi': 'count'}).rename(columns={'mi': 'count'}).sort_values(
             'count')
         df_arrived_count
