@@ -68,13 +68,13 @@ def main():
         st.bar_chart(df_arrived_count)
 
     if 'group' in df_arrived.columns:
-        with st.beta_expander('כמה יש בכל קבוצה', expanded=True):
+        with st.beta_expander('כמה יש בכל קבוצה', expanded=False):
             df_teams = df_arrived.groupby('group').agg({'mi': 'count'}).rename(columns={'mi': 'counts'}).sort_values(
                 'counts', ascending=False)
             df_teams
             st.bar_chart(df_teams)
 
-    with st.beta_expander('זמני הגעה', expanded=False):
+    with st.beta_expander('זמני הגעה', expanded=True):
         cols = ['pluga', 'hour', 'team'] + [c for c in df_arrived.columns if 'name' in c]
         dfc = df_arrived[cols]
         dfc = dfc.sort_values('hour').reset_index()
