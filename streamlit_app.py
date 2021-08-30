@@ -60,7 +60,7 @@ def main():
 
     unique_pluga = tuple(df_arrived.pluga.unique())
     unique_team = tuple(df_arrived.team.unique())
-    with st.beta_expander('כמה הגיעו מכל מסגרת', expanded=False):
+    with st.beta_expander('כמה הגיעו מכל מסגרת', expanded=True):
         group_by = 'pluga' if len(unique_pluga) != 1 or len(unique_team) == 1 else 'team'
         df_arrived_count = df_arrived.groupby(group_by).agg({'mi': 'count'}).rename(columns={'mi': 'count'}).sort_values(
             'count')
@@ -74,7 +74,7 @@ def main():
             df_teams
             st.bar_chart(df_teams)
 
-    with st.beta_expander('זמני הגעה', expanded=True):
+    with st.beta_expander('זמני הגעה', expanded=False):
         cols = ['pluga', 'hour', 'team'] + [c for c in df_arrived.columns if 'name' in c]
         dfc = df_arrived[cols]
         dfc = dfc.sort_values('hour').reset_index()
