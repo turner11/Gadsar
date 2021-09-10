@@ -10,7 +10,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 renames = {'תאריך': 'date',
-           'שם ומספר אישי': 'id', }
+           'שם_ומספר_אישי': 'id',
+           'שם_מתאמן': 'name',
+           'פלוגה': 'unit'}
 drops_prefixes = {'מס', 'האם ברצונך לדווח', 'MA'}
 
 
@@ -51,7 +53,7 @@ class ResultsDataBundle(object):
             df = excel_arg
         else:
             excel_path = Path(excel_arg)
-            assert self.excel_path.exists()
+            assert excel_path.exists()
             df = self.load_raw_data(excel_path)
 
         self.excel_path = excel_path
@@ -66,11 +68,11 @@ class ResultsDataBundle(object):
         return cols
 
     @staticmethod
-    def load_raw_data(excel_arg):
-        if isinstance(excel_arg, Path):
-            excel_arg = str(excel_arg)
-
-        df = pd.read_excel(excel_arg)
+    def load_raw_data(excel_arg: Union[pd.DataFrame, str, Path]) -> pd.DataFrame:
+        if isinstance(excel_arg, pd.DataFrame):
+            df = excel_arg
+        else:
+            df = pd.read_excel(str(excel_arg))
         df = df.replace("לא נענה", np.NaN)
         df = df.rename(columns={c: c.strip().replace("'", "").replace('"', '') for c in df.columns})
 
@@ -112,7 +114,7 @@ class ResultsDataBundle(object):
         df['average'] = df[data_cols].replace(0, np.nan).mean(numeric_only=True, skipna=True, axis=1)
         for col in ['pluga', 'mahlaka', 'group']:
             if col not in df.columns:
-                df = df.assign(**{col:''})
+                df = df.assign(**{col: ''})
         return df.copy()
 
     @staticmethod
@@ -124,19 +126,23 @@ class ResultsDataBundle(object):
             except ValueError:
                 return False
 
-        s_id = df.id.copy()
+        # s_id = df.id.copy()
+        # df = df.rename(columns={'id': 'id_old'})
+        # df['id'] = s_id.apply(lambda s: next((int(v) for v in str(s).split() if is_number(v)), -1))
+        # df['name'] = df.apply(lambda row: row.id_old.replace(str(row.id), '').strip(), axis=1)
+        # df = df.drop('id_old', axis='columns')
 
-        df = df.rename(columns={'id': 'id_old'})
-        df['id'] = s_id.apply(lambda s: next((int(v) for v in s.split() if is_number(v)), -1))
-        df['name'] = df.apply(lambda row: row.id_old.replace(str(row.id), '').strip(), axis=1)
+        s_unit = df.unit.copy()
+        df['gdud'] = s_unit.apply(lambda s: str(s).split('/')[0] )
+        df['pluga'] = s_unit.apply(lambda s: str(s).split('/')[-1] )
+        df = df.drop('unit', axis='columns')
 
-        df = df.drop('id_old', axis='columns')
         columns = ['id', 'name'] + [c for c in df.columns if c not in ['id', 'name']]
         return df[columns]
 
     @staticmethod
     def _get_drop_cols(df):
-        drop_cols = ['שעה', 'מבצע הסקר', ]
+        drop_cols = ['שעה', 'מבצע_הסקר', ]
 
         for col in df.columns:
             if len(df[col].unique()) == 1:
@@ -219,8 +225,8 @@ class ResultsDataBundle(object):
         stats_cols = self.stats_cols
 
         required_fields = ['pluga', 'mahlaka']
-        out_doors_cols = [c for c in stats_cols if 'טכניקות ותרגולות' in c]
-        in_doors_cols = [c for c in stats_cols if 'פגיעה באויב' in c]
+        out_doors_cols = [c for c in stats_cols if 'טכניקות_ותרגולות' in c]
+        in_doors_cols = [c for c in stats_cols if 'פגיעה_באויב' in c]
 
         has_groups = all(c in df.columns for c in required_fields)
         has_data = all(len(arr) for arr in [out_doors_cols, in_doors_cols])

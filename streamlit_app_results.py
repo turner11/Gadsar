@@ -1,45 +1,57 @@
 import os
+from collections import defaultdict
+
 import pandas as pd
 import streamlit as st
 from pathlib import Path
+import gsheetsdb
 
 from results_utils import ResultsDataBundle
 
+# Create a connection object.
+conn = gsheetsdb.connect()
+
+
+@st.cache(ttl=10)
+def run_query(query) -> pd.DataFrame:
+    # Note: Make sure to replace the following in the excel (suggested with a '_'): ', -, (, ), ?, ", /
+    cursor = conn.execute(query, headers=1)
+    df = pd.DataFrame(cursor.fetchall())
+    return df.copy()
+
 
 @st.cache
-def get_excel(excel_path):
-    return ResultsDataBundle.load_raw_data(excel_path)
+def get_excel() -> pd.DataFrame:
+    sheet_url = st.secrets.get("public_results_gsheets_url", '')
+    query_params = st.experimental_get_query_params() or defaultdict(list)
+    sheet_url = query_params.get('url', [sheet_url])[0]
+
+    if sheet_url:
+        excel_path = sheet_url
+    else:
+        debug = os.environ.get('debug')
+        path = Path(r'D:\Users\avitu\Downloads\1.xlsx').resolve() if debug else ''
+        excel_path = st.sidebar.text_input('Excel path / URL', str(path))
+
+    path_arg = excel_path
+    if excel_path.lower().startswith('http'):
+        df = run_query(f'SELECT * FROM "{sheet_url}"')
+        path_arg = df
+    return ResultsDataBundle.load_raw_data(path_arg)
 
 
 def get_sidebar_inputs():
-    debug = os.environ.get('debug')
-    if debug:
-        excel_path = st.sidebar.text_input('Excel path', Path(r'D:\Users\avitu\Downloads\1.xlsx').resolve())
-        excel_arg = excel_path
-    else:
-        uploaded_file = st.sidebar.file_uploader("Choose the IMI results file", type="xlsx")
-        excel_arg = uploaded_file
-    if not excel_arg:
-        return
-
-    df = get_excel(excel_arg)
-    group_filter = ''
-    # if 'group' in df.columns:
-    #     groups = [''] + [g for g in df['group'].dropna().drop_duplicates() if g.strip()]
-    #     groups = sorted(groups)
-    #     group_filter = st.sidebar.selectbox('פילטר', groups, groups.index(''))
-    # if group_filter:
-    #     df = df[df['group'] == group_filter]
+    df = get_excel()
+    filter_by = sorted(set(list(df.gdud)))
+    # HACK for gadsar...
+    idx = 2 if len(filter_by) > 2 else 0
+    gdud = st.sidebar.selectbox('גדוד', filter_by, idx)
+    df = df[df.gdud == gdud]
 
     bundle = ResultsDataBundle(df)
-    filter_dates = list(bundle.dates)
 
-    if not group_filter:
-        # HACK for gadsar...
-        idx = 2 if len(filter_dates) > 2 else 0
-        date = st.sidebar.selectbox('dates', filter_dates, idx)
-        if date:
-            bundle.filter_dates = [date]
+    # if date:
+    #     bundle.filter_dates = [date]
     return bundle
 
 
@@ -134,4 +146,7 @@ def main():
 
 
 if __name__ == '__main__':
+    pd.set_option('display.max_rows', 500)
+    pd.set_option('display.max_columns', 500)
+    pd.set_option('display.width', 1000)
     main()
