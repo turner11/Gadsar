@@ -1,12 +1,15 @@
 import os
+import sys
 from collections import defaultdict
+from typing import Tuple
 
 import pandas as pd
 import streamlit as st
 from pathlib import Path
 import gsheetsdb
+import results_utils as utils
 
-from results_utils import ResultsDataBundle
+
 
 # Create a connection object.
 conn = gsheetsdb.connect()
@@ -21,7 +24,7 @@ def run_query(query) -> pd.DataFrame:
 
 
 @st.cache
-def get_excel() -> pd.DataFrame:
+def get_excel() -> Tuple[pd.DataFrame, str]:
     sheet_url = st.secrets.get("public_results_gsheets_url", '')
     query_params = st.experimental_get_query_params() or defaultdict(list)
     sheet_url = query_params.get('url', [sheet_url])[0]
@@ -33,22 +36,26 @@ def get_excel() -> pd.DataFrame:
         path = Path(r'D:\Users\avitu\Downloads\1.xlsx').resolve() if debug else ''
         excel_path = st.sidebar.text_input('Excel path / URL', str(path))
 
-    path_arg = excel_path
+    path_arg = pretty_path_arg = excel_path
+
     if excel_path.lower().startswith('http'):
         df = run_query(f'SELECT * FROM "{sheet_url}"')
         path_arg = df
-    return ResultsDataBundle.load_raw_data(path_arg)
+    return utils.ResultsDataBundle.load_raw_data(path_arg), pretty_path_arg
 
 
 def get_sidebar_inputs():
-    df = get_excel()
-    filter_by = sorted(set(list(df.gdud)))
+    df, data_source = get_excel()
+    md_link = f'[Data source]({data_source})'
+
+    st.sidebar.markdown(md_link)
+    main_filter_values = set(list(df.gdud))
     # HACK for gadsar...
-    idx = 2 if len(filter_by) > 2 else 0
-    gdud = st.sidebar.selectbox('גדוד', filter_by, idx)
+    filter_by = sorted(main_filter_values, key=lambda v: ('655' not in v, 'גדס' not in v, v))
+    gdud = st.sidebar.selectbox('גדוד', filter_by, 0)
     df = df[df.gdud == gdud]
 
-    bundle = ResultsDataBundle(df)
+    bundle = utils.ResultsDataBundle(df)
 
     # if date:
     #     bundle.filter_dates = [date]
@@ -138,6 +145,7 @@ def main():
     with st.beta_expander('סיכום', expanded=False):
         df_avg, s_total = bundle.get_total_series()
         st.subheader('ממוצע לפי נושא:')
+        df_avg: pd.Series
         st.dataframe(df_avg)
         st.subheader('סה"כ:')
 
@@ -146,6 +154,9 @@ def main():
 
 
 if __name__ == '__main__':
+    # $env:PYTHONPATH="$PYTHONPATH;C:\Users\avitu\Documents\GitHub\IMI"
+    sys.path.append(r'C:\Users\avitu\Documents\GitHub\IMI')
+
     pd.set_option('display.max_rows', 500)
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)

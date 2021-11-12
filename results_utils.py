@@ -1,6 +1,6 @@
 from functools import reduce
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 import numpy as np
 import pandas as pd
 from collections import defaultdict
@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 renames = {'תאריך': 'date',
            'שם_ומספר_אישי': 'id',
            'שם_מתאמן': 'name',
-           'פלוגה': 'unit'}
+           'פלוגה': 'unit',
+           'מחלקה': 'mahlaka'}
 drops_prefixes = {'מס', 'האם ברצונך לדווח', 'MA'}
 
 
@@ -196,7 +197,7 @@ class ResultsDataBundle(object):
 
             x = alt.Chart(curr_df).mark_circle(size=size).encode(
                 x=alt.X(f'{col}:Q',
-                        scale=alt.Scale(zero=False)),
+                        scale=alt.Scale(zero=False, domain=get_scale(curr_df[col]))),
                 y='average',
                 # color=color,
                 color=color if color is not None else 'pluga',
@@ -209,16 +210,21 @@ class ResultsDataBundle(object):
         result = result.add_selection(selection)
         return result
 
-    def get_total_series(self):
+    def get_total_series(self) -> Tuple[pd.Series, float]:
         df = self.df
         stats_cols = self.stats_cols
         return self.__get_total_series(df, stats_cols)
 
     @staticmethod
-    def __get_total_series(df, stats_cols):
-        df_avg = df[stats_cols].replace(0, np.nan).mean(numeric_only=True, skipna=True, axis=0)
+    def __get_total_series(df, stats_cols)-> Tuple[pd.Series, float]:
+        df_avg = df[stats_cols].replace(0, np.nan).mean(numeric_only=True, skipna=True, axis=0).dropna()
         s_total = df_avg.mean()
+
+        temp_df_avg = df_avg.to_frame()
+        df_avg = temp_df_avg.sort_values(by=temp_df_avg.columns[0], ascending=False).T.iloc[0]
+
         return df_avg, s_total
+
 
     def get_comparison_chart(self):
         df = self.df
@@ -253,12 +259,15 @@ class ResultsDataBundle(object):
         dfms = df_plot.groupby(['mahlaka', 'pluga'], as_index=True)[['indoor', 'outdoor']].agg(np.mean)
 
         selection = alt.selection_multi(fields=['pluga'], bind='legend')
+        scale_x = get_scale(df_plot.indoor)
+        scale_y = get_scale(df_plot.outdoor)
         charts = []
         for pluga, dfp in dfms.groupby('pluga'):
             chart_p = alt.Chart(dfp.reset_index()).mark_square(size=50).encode(
                 x=alt.X('indoor:Q',
-                        scale=alt.Scale(zero=False)),
-                y='outdoor',
+                        scale=alt.Scale(zero=False, domain=scale_x)),
+                y=alt.Y('outdoor:Q',
+                        scale=alt.Scale(zero=False, domain=scale_y)),
                 color='pluga',
                 tooltip=['mahlaka', 'indoor', 'outdoor'],
                 opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
@@ -267,8 +276,9 @@ class ResultsDataBundle(object):
             df_center = dfps[dfps.index == pluga].reset_index()
             centroid = alt.Chart(df_center).mark_circle(size=350).encode(
                 x=alt.X('indoor:Q',
-                        scale=alt.Scale(zero=False)),
-                y='outdoor',
+                        scale=alt.Scale(zero=False, domain=scale_x)),
+                y=alt.Y('outdoor:Q',
+                       scale=alt.Scale(zero=False, domain=scale_y)),
                 color='pluga',
                 tooltip=['pluga', 'indoor', 'outdoor'],
                 opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
@@ -283,3 +293,11 @@ class ResultsDataBundle(object):
             chart = chart.add_selection(selection).interactive()
 
         return chart
+
+
+def get_scale(data):
+    # [max(0, min(data)-1), 10]
+    margin = 0.2
+    vals = data[data > 0].dropna()
+    scale = [max(0, min(vals)-margin), min(10, max(vals)+margin)]
+    return scale
