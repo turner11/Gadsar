@@ -24,19 +24,20 @@ def get_df():
     query_params = st.experimental_get_query_params() or defaultdict(list)
     sheet_url = query_params.get('url', [sheet_url])[0]
 
-    path = sheet_url or Path('./data.xlsx').resolve()
+    path = pretty_path =  sheet_url or Path('./data.xlsx').resolve()
     excel_path = st.sidebar.text_input('Excel path / URL', str(path))
 
     if excel_path.lower().startswith('http'):
-        path_arg = run_query(f'SELECT * FROM "{sheet_url}"')
+        path_arg = run_query(f'SELECT * FROM "{excel_path}"')
     else:
         path_arg = path
     df = DataBundle.get_base_data(path_arg)
-    return df
+    return df, pretty_path
 
 
 def get_sidebar_inputs():
-    df = get_df()
+    df, data_source = get_df()
+    md_link = f'[Data source]({data_source})'
 
     plugot = list(df.pluga.drop_duplicates())
     plugot = st.sidebar.multiselect('סינון פלוגות', plugot, plugot)
