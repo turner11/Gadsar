@@ -38,6 +38,7 @@ def get_df():
 def get_sidebar_inputs():
     df, data_source = get_df()
     md_link = f'[Data source]({data_source})'
+    st.sidebar.markdown(md_link)
 
     plugot = list(df.pluga.drop_duplicates())
     plugot = st.sidebar.multiselect('סינון פלוגות', plugot, plugot)

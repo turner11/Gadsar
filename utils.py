@@ -7,7 +7,8 @@ import numpy as np
 import re
 
 reverse_renames = {
-    'mi': "מספר אישי",
+    'mi': 'ספר אישי',
+    'tz': 'תז',
     'first_name': "שם פרטי",
     'last_name': "שם משפחה",
     'pluga': "פלוגה",
@@ -75,10 +76,14 @@ class DataBundle:
         df = df[[c for c in df.columns if 'unnamed' not in c.lower()]]
 
         df: pd.DataFrame = df.rename(columns=renames)
+        if 'mi' not in df.columns:
+            df = df.rename(columns={'tz':'mi'})
         df.pluga = df.pluga.apply(lambda p: str(p).replace('"', ''))
         df.infer_objects()
 
         # df['arrived'] = df.hour.apply(lambda v: True if v and not np.isnan(v) else False).astype(bool)
+        df = df.dropna(subset=['first_name', 'last_name', 'pluga'], how='all')
+
         df['hour'] = df.hour.apply(get_time)
         df['arrived'] = df.hour.apply(get_arrived).astype(bool)
         if 'team' not in df.columns:
