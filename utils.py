@@ -78,6 +78,7 @@ class DataBundle:
             df = pd.read_excel(str(excel_path))
         df = df[[c for c in df.columns if 'unnamed' not in c.lower()]]
 
+        df.rename(columns={d:d.strip() for d in df.columns})
         df: pd.DataFrame = df.rename(columns=renames)
         if 'mi' not in df.columns:
             df = df.rename(columns={'tz': 'mi'})
