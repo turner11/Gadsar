@@ -107,11 +107,11 @@ def main():
         st.warning("No Data")
         return
 
-    with st.beta_expander('מידע גולמי', expanded=False):
+    with st.expander('מידע גולמי', expanded=False):
         df = bundle.df
         st.dataframe(df)
 
-    with st.beta_expander('חיפוש לפי חייל', expanded=False):
+    with st.expander('חיפוש לפי חייל', expanded=False):
         name = st.text_input('חייל לחיפוש:', help="Could be search_key or ID")
         records = bundle.get_items(name)
 
@@ -122,7 +122,7 @@ def main():
         elif isinstance(records, pd.Series):
             show_single_file_info(records, bundle)
 
-    with st.beta_expander('פירוט אימונים', expanded=False):
+    with st.expander('פירוט אימונים', expanded=False):
         highlighted_records = (records.name,) if isinstance(records, pd.Series) else tuple(records.index)
         stats_cols = sorted(set(bundle.stats_cols).intersection(set(df.columns)))
         default_stat = stats_cols[0]
@@ -138,11 +138,11 @@ def main():
 
     comparison_chart = bundle.get_comparison_chart()
     if comparison_chart is not None:
-        with st.beta_expander('השוואה בין מסגרות', expanded=True):
+        with st.expander('השוואה בין מסגרות', expanded=True):
             chart = st.empty()
             chart.altair_chart(comparison_chart, use_container_width=True)
 
-    with st.beta_expander('סיכום', expanded=False):
+    with st.expander('סיכום', expanded=False):
         df_avg, s_total = bundle.get_total_series()
         st.subheader('ממוצע לפי נושא:')
         df_avg: pd.Series
