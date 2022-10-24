@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import re
 
+# noinspection SpellCheckingInspection
 reverse_renames = {
     'mi': 'ספר אישי',
     'tz': 'תז',
@@ -27,10 +28,12 @@ now = datetime.now()
 
 
 def get_arrived(hour):
+    # noinspection PyProtectedMember
     return isinstance(hour, pd._libs.tslibs.timestamps.Timestamp)
 
 
 def get_time(raw_hour):
+    # noinspection PyBroadException
     try:
         # if isinstance(raw_hour, datetime):
         if isinstance(raw_hour, time):
@@ -48,7 +51,7 @@ def get_time(raw_hour):
             out_date = datetime(now.year, now.month, now.day, time_stamp.hour, time_stamp.minute, time_stamp.second)
         else:
             out_date = None
-    except Exception as ex:
+    except Exception:
         out_date = None
     return out_date
 
@@ -77,7 +80,7 @@ class DataBundle:
 
         df: pd.DataFrame = df.rename(columns=renames)
         if 'mi' not in df.columns:
-            df = df.rename(columns={'tz':'mi'})
+            df = df.rename(columns={'tz': 'mi'})
         df.pluga = df.pluga.apply(lambda p: str(p).replace('"', ''))
         df.infer_objects()
 
