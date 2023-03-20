@@ -8,7 +8,7 @@ import re
 
 # noinspection SpellCheckingInspection
 reverse_renames = {
-    'mi': 'ספר אישי',
+    'mi': 'מספר אישי',
     'tz': 'תז',
     'first_name': "שם פרטי",
     'last_name': "שם משפחה",

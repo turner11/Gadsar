@@ -12,7 +12,7 @@ import gsheetsdb
 conn = gsheetsdb.connect()
 
 
-@st.cache(ttl=10)
+@st.cache_resource(ttl=10)
 def run_query(query) -> pd.DataFrame:
     cursor = conn.execute(query, headers=1)
     df = pd.DataFrame(cursor.fetchall())

@@ -15,7 +15,7 @@ import results_utils as utils
 conn = gsheetsdb.connect()
 
 
-@st.cache(ttl=10)
+@st.cache_data(ttl=10)
 def run_query(query) -> pd.DataFrame:
     # Note: Make sure to replace the following in the excel (suggested with a '_'): ', -, (, ), ?, ", /
     cursor = conn.execute(query, headers=1)
@@ -23,7 +23,7 @@ def run_query(query) -> pd.DataFrame:
     return df.copy()
 
 
-@st.cache
+@st.cache_data
 def get_excel() -> Tuple[pd.DataFrame, str]:
     sheet_url = st.secrets.get("public_results_gsheets_url", '')
     query_params = st.experimental_get_query_params() or defaultdict(list)
